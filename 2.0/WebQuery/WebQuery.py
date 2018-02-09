@@ -22,8 +22,8 @@ from aqt.downloader import download
 from aqt.models import Models
 from aqt.utils import tooltip, restoreGeom, showInfo
 
-from .DonateWidget20 import DialogDonate
-from .uuid import uuid4
+from DonateWidget20 import DialogDonate
+from uuid import uuid4
 
 # region Bytes
 items_bytes = bytearray(
