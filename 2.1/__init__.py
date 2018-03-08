@@ -36,7 +36,7 @@ __update_logs__ = (
     ('1.2.46', """
     <ol>
     <li>Fix <b>'Right-Click Mode'</b> was preventing left button actions.</li>
-    <li>Fixed<a href="https://github.com/upday7/WebQuery/issues/10">#10</a> 
+    <li>Fix <a href="https://github.com/upday7/WebQuery/issues/10">#10</a> 
     Mute time-out in querying unaccessible web .. </li>
     </ol>
     """)
