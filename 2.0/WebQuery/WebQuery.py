@@ -11,8 +11,12 @@ import re
 import time
 from functools import partial
 
+from DonateWidget20 import DialogDonate
 from PyQt4 import QtNetwork
 from PyQt4.QtNetwork import QNetworkRequest, QNetworkAccessManager
+from PyQt4.QtWebKit import QWebPluginFactory
+from uuid import uuid4
+
 from anki.cards import Card
 # noinspection PyArgumentList
 from anki.lang import _
@@ -21,9 +25,6 @@ from aqt import *
 from aqt.downloader import download
 from aqt.models import Models
 from aqt.utils import tooltip, restoreGeom, showInfo
-
-from .DonateWidget20 import DialogDonate
-from .uuid import uuid4
 
 # region Bytes
 items_bytes = bytearray(
@@ -534,6 +535,26 @@ class ModelConfig:
 
 # region Qt Widgets
 
+class WebPluginFactory(QWebPluginFactory):
+    def __init__(self, parent=None):
+        QWebPluginFactory.__init__(self, parent)
+
+    def create(mimeType):
+        if mimeType == "x-pyqt/widget":
+            return WebQueryWidget()
+
+    def plugins(self):
+        plugin = QWebPluginFactory.Plugin()
+        plugin.name = "PyQt Widget"
+        plugin.description = "An example Web plugin written with PyQt."
+        mimeType = QWebPluginFactory.MimeType()
+        mimeType.name = "x-pyqt/widget"
+        mimeType.description = "PyQt widget"
+        mimeType.fileExtensions = []
+        plugin.mimeTypes = [mimeType]
+        print("plugins")
+        return [plugin]
+
 
 class _Page(QWebPage):
     has_selector_contents = pyqtSignal(bool)
@@ -547,7 +568,10 @@ class _Page(QWebPage):
         self.event_looptime = 0.01
         self._load_status = None
         self.loadFinished.connect(self._on_load_finished)
+        self.plug_factory = WebPluginFactory()
+        self.setPluginFactory(self.plug_factory)
         self.try_proxy()
+
 
     def try_proxy(self):
         if not UserConfig.proxy_settings.get("enabled", False):
@@ -632,7 +656,8 @@ class _Page(QWebPage):
         itime = time.time()
         while self._load_status is None:
             if timeout and time.time() - itime > timeout:
-                raise Exception("Timeout reached: %d seconds" % timeout)
+                break
+                # raise Exception("Timeout reached: %d seconds" % timeout)
             self._events_loop()
         self._events_loop(0.0)
         if self._load_status:
@@ -650,8 +675,8 @@ class _WebView(QWebView):
         super(_WebView, self).__init__(parent)
         self.qry_page = None
         self.txt_option_menu = txt_option_menu
-
         self._web_element_rect = None
+        self.settings().setAttribute(QWebSettings.PluginsEnabled, True)
 
     def add_query_page(self, page):
         if not self.qry_page:
@@ -692,7 +717,7 @@ class _WebView(QWebView):
     def mousePressEvent(self, evt):
         """
 
-        :type event: QMouseEvent
+        :type evt: QMouseEvent
         :return:
         """
         if SyncConfig.auto_img_find and evt.button() == Qt.RightButton:
@@ -710,8 +735,8 @@ class _WebView(QWebView):
                     break
             if self._web_element_rect:
                 self.element_captured.emit(self._web_element_rect)
-                evt.accept()
-
+        else:
+            super(_WebView, self).mousePressEvent(evt)
 
 class ImageLabel(QLabel):
     cropMode = True
@@ -1236,11 +1261,15 @@ class WebQueryWidget(QWidget):
         self.loading_grp = [self.loading_lb]
         self.view_grp = [self._view, self.capture_button, self.capture_option_btn]
         self.capture_grp = [self.lable_img_capture, self.return_button, self.save_img_button, ]
+        self.misc_grp = [
+            self.resize_btn, self.support_btn, self.update_btn
+        ]
 
         # Visible
         self.show_grp(self.loading_grp, False)
         self.show_grp(self.view_grp, False)
         self.show_grp(self.capture_grp, False)
+        self.show_grp(self.misc_grp, False)
 
         # other slots
         self._view.loadStarted.connect(self.loading_started)
@@ -1256,11 +1285,13 @@ class WebQueryWidget(QWidget):
         self.show_grp(self.loading_grp, True)
         self.show_grp(self.view_grp, False)
         self.show_grp(self.capture_grp, False)
+        self.show_grp(self.misc_grp, False)
 
     def load_completed(self, *args):
         self.show_grp(self.loading_grp, False)
         self.show_grp(self.view_grp, True)
         self.show_grp(self.capture_grp, False)
+        self.show_grp(self.misc_grp, True)
 
     def show_grp(self, grp, show):
         for c in grp:

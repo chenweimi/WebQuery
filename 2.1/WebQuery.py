@@ -1200,11 +1200,15 @@ class WebQueryWidget(QWidget):
         self.loading_grp = [self.loading_lb]
         self.view_grp = [self._view, self.capture_button, self.capture_option_btn]
         self.capture_grp = [self.lable_img_capture, self.return_button, self.save_img_button, ]
+        self.misc_grp = [
+            self.resize_btn, self.support_btn, self.update_btn
+        ]
 
         # Visible
         self.show_grp(self.loading_grp, False)
         self.show_grp(self.view_grp, False)
         self.show_grp(self.capture_grp, False)
+        self.show_grp(self.misc_grp, False)
 
         # other slots
         self._view.loadStarted.connect(self.loading_started)
@@ -1221,11 +1225,13 @@ class WebQueryWidget(QWidget):
         self.show_grp(self.loading_grp, True)
         self.show_grp(self.view_grp, False)
         self.show_grp(self.capture_grp, False)
+        self.show_grp(self.misc_grp, False)
 
     def load_completed(self, *args):
         self.show_grp(self.loading_grp, False)
         self.show_grp(self.view_grp, True)
         self.show_grp(self.capture_grp, False)
+        self.show_grp(self.misc_grp, True)
 
     def show_grp(self, grp, show):
         for c in grp:

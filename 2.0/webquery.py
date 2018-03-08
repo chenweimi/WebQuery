@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+from PyQt4.QtWebKit import QWebSettings
 
 from anki.hooks import addHook, remHook
 
@@ -45,6 +46,7 @@ def start():
     addHook("profileLoaded", lambda: wq.perform_hooks(addHook))
     addHook("unloadProfile", lambda: wq.perform_hooks(remHook))
     WebQuery.have_setup = True
+    QWebSettings.globalSettings().setAttribute(QWebSettings.PluginsEnabled, True)
 
 
 addHook("profileLoaded", start)
