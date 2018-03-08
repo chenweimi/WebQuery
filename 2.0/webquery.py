@@ -19,7 +19,7 @@ from PyQt4.QtWebKit import QWebSettings
 
 from anki.hooks import addHook, remHook
 
-__version__ = '1.2.45'
+__version__ = '1.2.46'
 
 __update_logs__ = (
     ('1.2.44', """
@@ -30,6 +30,13 @@ __update_logs__ = (
     error of multiple menus and docks when profile has been switched.</li>
     </ol>
     """),
+    ('1.2.46', """
+    <ol>
+    <li>Fix <b>'Right-Click Mode'</b> was preventing left button actions.</li>
+    <li>Fixed<a href="https://github.com/upday7/WebQuery/issues/10">#10</a> 
+    Mute time-out in querying unaccessible web .. </li>
+    </ol>
+    """)
 )
 
 
