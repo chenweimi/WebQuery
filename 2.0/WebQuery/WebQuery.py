@@ -14,8 +14,6 @@ from functools import partial
 from PyQt4 import QtNetwork
 from PyQt4.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt4.QtWebKit import QWebPluginFactory
-
-from DonateWidget20 import DialogDonate
 from anki.cards import Card
 # noinspection PyArgumentList
 from anki.lang import _
@@ -24,6 +22,8 @@ from aqt import *
 from aqt.downloader import download
 from aqt.models import Models
 from aqt.utils import tooltip, restoreGeom, showInfo
+
+from DonateWidget20 import DialogDonate
 from uuid import uuid4
 from .SharedControl import MoreAddonButton
 
@@ -1280,7 +1280,7 @@ class WebQueryWidget(QWidget):
         self.view_grp = [self._view, self.capture_button, self.capture_option_btn]
         self.capture_grp = [self.lable_img_capture, self.return_button, self.save_img_button, ]
         self.misc_grp = [
-            self.resize_btn, self.support_btn
+            self.resize_btn, self.support_btn, self.more_addon_btn
         ]
 
         # Visible
