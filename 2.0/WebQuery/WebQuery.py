@@ -11,12 +11,11 @@ import re
 import time
 from functools import partial
 
-from DonateWidget20 import DialogDonate
 from PyQt4 import QtNetwork
 from PyQt4.QtNetwork import QNetworkRequest, QNetworkAccessManager
 from PyQt4.QtWebKit import QWebPluginFactory
-from uuid import uuid4
 
+from DonateWidget20 import DialogDonate
 from anki.cards import Card
 # noinspection PyArgumentList
 from anki.lang import _
@@ -25,6 +24,8 @@ from aqt import *
 from aqt.downloader import download
 from aqt.models import Models
 from aqt.utils import tooltip, restoreGeom, showInfo
+from uuid import uuid4
+from .SharedControl import MoreAddonButton
 
 # region Bytes
 items_bytes = bytearray(
@@ -572,7 +573,6 @@ class _Page(QWebPage):
         self.setPluginFactory(self.plug_factory)
         self.try_proxy()
 
-
     def try_proxy(self):
         if not UserConfig.proxy_settings.get("enabled", False):
             return
@@ -626,7 +626,7 @@ class _Page(QWebPage):
         req = QNetworkRequest(QUrl(url))
 
         self.mainFrame().load(req)
-        self._wait_load(10)
+        self._wait_load(60)
 
     def _events_loop(self, wait=None):
         if wait is None:
@@ -737,6 +737,7 @@ class _WebView(QWebView):
                 self.element_captured.emit(self._web_element_rect)
         else:
             super(_WebView, self).mousePressEvent(evt)
+
 
 class ImageLabel(QLabel):
     cropMode = True
@@ -1237,13 +1238,30 @@ class WebQueryWidget(QWidget):
         self.update_btn = UpgradeButton(self)
         self.update_btn.setMaximumWidth(20)
 
+        self.more_addon_btn = MoreAddonButton(self)
+        self.more_addon_btn.setMaximumWidth(24)
+        icon_file = os.path.join(os.path.dirname(__file__), "more.png")
+        self.more_addon_btn.setIcon(icon_file)
+
         self.capture_option_btn = CaptureOptionButton(self, options_menu)
         self.capture_option_btn.setMaximumWidth(100)
+
+        FIXED = 24
+        self.resize_btn.setFixedHeight(FIXED)
+        self.support_btn.setFixedHeight(FIXED)
+        self.capture_option_btn.setFixedHeight(FIXED)
+        self.save_img_button.setFixedHeight(FIXED)
+        self.return_button.setFixedHeight(FIXED)
+        self.capture_button.setFixedHeight(FIXED)
+        self.update_btn.setFixedHeight(FIXED)
+        self.more_addon_btn.setFixedHeight(FIXED)
+
         self.img_btn_grp_ly = QHBoxLayout()
         self.img_btn_grp_ly.addWidget(self.resize_btn)
         self.img_btn_grp_ly.addWidget(self.update_btn)
         self.img_btn_grp_ly.addSpacing(5)
         self.img_btn_grp_ly.addWidget(self.support_btn)
+        self.img_btn_grp_ly.addWidget(self.more_addon_btn)
         self.img_btn_grp_ly.addWidget(self.capture_option_btn)
         self.img_btn_grp_ly.addWidget(self.return_button)
         self.img_btn_grp_ly.addWidget(self.save_img_button)

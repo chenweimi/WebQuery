@@ -19,7 +19,7 @@ from PyQt4.QtWebKit import QWebSettings
 
 from anki.hooks import addHook, remHook
 
-__version__ = '1.2.46'
+__version__ = '1.2.47'
 
 __update_logs__ = (
     ('1.2.44', """
@@ -36,7 +36,13 @@ __update_logs__ = (
         <li>Fix <a href="https://github.com/upday7/WebQuery/issues/10">#10</a> 
         Mute time-out in querying unaccessible web .. </li>
         </ol>
-        """)
+        """),
+    ('1.2.47', """
+       <ol>
+       <li>Add: "More Addons" menu for my major developments for Anki addon .. </li>
+       <li>Improve: Incorrect button heights</li>
+       </ol>
+       """)
 )
 
 
