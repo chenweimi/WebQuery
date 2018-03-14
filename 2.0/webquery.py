@@ -19,7 +19,7 @@ from PyQt4.QtWebKit import QWebSettings
 
 from anki.hooks import addHook, remHook
 
-__version__ = '1.2.47'
+__version__ = '1.2.48'
 
 __update_logs__ = (
     ('1.2.44', """
@@ -41,6 +41,11 @@ __update_logs__ = (
        <ol>
        <li>Add: "More Addons" menu for my major developments for Anki addon .. </li>
        <li>Improve: Incorrect button heights</li>
+       </ol>
+       """),
+    ('1.2.48', """
+       <ol>
+       <li>Trying to fix crashing on bing quering, should be Qt4 Webkit glitch</li>
        </ol>
        """)
 )

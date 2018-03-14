@@ -12,8 +12,10 @@ import time
 from functools import partial
 
 from PyQt4 import QtNetwork
-from PyQt4.QtNetwork import QNetworkRequest, QNetworkAccessManager
+from PyQt4.QtNetwork import QNetworkAccessManager
 from PyQt4.QtWebKit import QWebPluginFactory
+
+from DonateWidget20 import DialogDonate
 from anki.cards import Card
 # noinspection PyArgumentList
 from anki.lang import _
@@ -22,8 +24,6 @@ from aqt import *
 from aqt.downloader import download
 from aqt.models import Models
 from aqt.utils import tooltip, restoreGeom, showInfo
-
-from DonateWidget20 import DialogDonate
 from uuid import uuid4
 from .SharedControl import MoreAddonButton
 
@@ -572,6 +572,7 @@ class _Page(QWebPage):
         self.plug_factory = WebPluginFactory()
         self.setPluginFactory(self.plug_factory)
         self.try_proxy()
+        self._first_reload_prohibited = False
 
     def try_proxy(self):
         if not UserConfig.proxy_settings.get("enabled", False):
@@ -590,10 +591,20 @@ class _Page(QWebPage):
         assert isinstance(mgr, QNetworkAccessManager)
         mgr.setProxy(proxy)
 
+    def acceptNavigationRequest(self, mf, rqst, nav_type):
+        # fixme temparory solution of auto reloading on the page creation ..
+        # I'm no able to solve this for spending more time ..
+        # print [nav for nav in dir(self) if nav.startswith('NavigationType') and getattr(self,nav) ==nav_type]
+        if nav_type == self.NavigationTypeReload and not self._first_reload_prohibited:
+            self._first_reload_prohibited = True
+            return False
+        return True
+
     def userAgentForUrl(self, url):
         return "Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, " \
                "like Gecko) Version/9.0 Mobile/13B143 Safari/601.1"
-
+        # return """
+        # Mozilla/5.0 (compatible; MSIE 10.0; Windows Phone 8.0; Trident/6.0; IEMobile/10.0; ARM; Touch; NOKIA; Lumia 520)"""
     @property
     def provider(self):
         return self._provider_url
@@ -623,9 +634,7 @@ class _Page(QWebPage):
         else:
             url = self.get_url()
 
-        req = QNetworkRequest(QUrl(url))
-
-        self.mainFrame().load(req)
+        self.currentFrame().load(url)
         self._wait_load(60)
 
     def _events_loop(self, wait=None):
@@ -1299,6 +1308,7 @@ class WebQueryWidget(QWidget):
         self._loading_url = ''
 
     def loading_started(self):
+        print 1
         self.loading_lb.setText("<b>Loading ... </b>")
         self.show_grp(self.loading_grp, True)
         self.show_grp(self.view_grp, False)
@@ -1306,6 +1316,7 @@ class WebQueryWidget(QWidget):
         self.show_grp(self.misc_grp, False)
 
     def load_completed(self, *args):
+        print 2
         self.show_grp(self.loading_grp, False)
         self.show_grp(self.view_grp, True)
         self.show_grp(self.capture_grp, False)
