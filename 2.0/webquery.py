@@ -19,7 +19,7 @@ from PyQt4.QtWebKit import QWebSettings
 
 from anki.hooks import addHook, remHook
 
-__version__ = '1.2.48'
+__version__ = '1.2.49'
 
 __update_logs__ = (
     ('1.2.44', """
@@ -43,7 +43,7 @@ __update_logs__ = (
        <li>Improve: Incorrect button heights</li>
        </ol>
        """),
-    ('1.2.48', """
+    ('1.2.49', """
        <ol>
        <li>Trying to fix crashing on bing quering, should be Qt4 Webkit glitch</li>
        </ol>
