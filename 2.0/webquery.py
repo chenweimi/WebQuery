@@ -19,7 +19,7 @@ from PyQt4.QtWebKit import QWebSettings
 
 from anki.hooks import addHook, remHook
 
-__version__ = '1.2.47'
+__version__ = '1.2.50'
 
 __update_logs__ = (
     ('1.2.44', """
@@ -34,7 +34,7 @@ __update_logs__ = (
         <ol>
         <li>Fix <b>'Right-Click Mode'</b> was preventing left button actions.</li>
         <li>Fix <a href="https://github.com/upday7/WebQuery/issues/10">#10</a> 
-        Mute time-out in querying unaccessible web .. </li>
+        Mute time-out in querying unacceptable web .. </li>
         </ol>
         """),
     ('1.2.47', """
