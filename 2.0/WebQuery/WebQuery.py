@@ -12,7 +12,7 @@ import time
 from functools import partial
 
 from PyQt4 import QtNetwork
-from PyQt4.QtNetwork import QNetworkRequest, QNetworkAccessManager
+from PyQt4.QtNetwork import QNetworkAccessManager
 from PyQt4.QtWebKit import QWebPluginFactory
 
 from DonateWidget20 import DialogDonate
@@ -507,6 +507,7 @@ class ProfileConfig:
 
     is_first_webq_run = True
     wq_current_version = ''
+    wq_first_answer_clicked = False
 
 
 class UserConfig:
@@ -585,6 +586,7 @@ class _Page(QWebPage):
         self.plug_factory = WebPluginFactory()
         self.setPluginFactory(self.plug_factory)
         self.try_proxy()
+        self._first_reload_prohibited = False
 
     def try_proxy(self):
         if not UserConfig.proxy_settings.get("enabled", False):
@@ -603,9 +605,20 @@ class _Page(QWebPage):
         assert isinstance(mgr, QNetworkAccessManager)
         mgr.setProxy(proxy)
 
+    def acceptNavigationRequest(self, mf, rqst, nav_type):
+        # fixme temparory solution of auto reloading on the page creation ..
+        # I'm no able to solve this for spending more time ..
+        # print [nav for nav in dir(self) if nav.startswith('NavigationType') and getattr(self,nav) ==nav_type]
+        if nav_type == self.NavigationTypeReload and not self._first_reload_prohibited:
+            self._first_reload_prohibited = True
+            return False
+        return True
+
     def userAgentForUrl(self, url):
         return "Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, " \
                "like Gecko) Version/9.0 Mobile/13B143 Safari/601.1"
+        # return """
+        # Mozilla/5.0 (compatible; MSIE 10.0; Windows Phone 8.0; Trident/6.0; IEMobile/10.0; ARM; Touch; NOKIA; Lumia 520)"""
 
     @property
     def provider(self):
@@ -636,10 +649,8 @@ class _Page(QWebPage):
         else:
             url = self.get_url()
 
-        req = QNetworkRequest(QUrl(url))
-
-        self.mainFrame().load(req)
-        self._wait_load(60)
+        self.currentFrame().load(url)
+        self._wait_load(10)
 
     def _events_loop(self, wait=None):
         if wait is None:
@@ -669,8 +680,7 @@ class _Page(QWebPage):
         itime = time.time()
         while self._load_status is None:
             if timeout and time.time() - itime > timeout:
-                break
-                # raise Exception("Timeout reached: %d seconds" % timeout)
+                raise Exception("Timeout reached: %d seconds" % timeout)
             self._events_loop()
         self._events_loop(0.0)
         if self._load_status:
@@ -1208,9 +1218,10 @@ class WebQueryWidget(QWidget):
     def add_query_page(self, page):
         self._view.add_query_page(page)
 
-        self.show_grp(self.loading_grp, False)
-        self.show_grp(self.view_grp, True)
-        self.show_grp(self.capture_grp, False)
+        if not ProfileConfig.wq_first_answer_clicked:
+            self.show_grp(self.loading_grp, False)
+            self.show_grp(self.view_grp, True)
+            self.show_grp(self.capture_grp, False)
 
     def reload(self):
         self._view.reload()
@@ -1295,7 +1306,7 @@ class WebQueryWidget(QWidget):
         self.view_grp = [self._view, self.capture_button, self.capture_option_btn]
         self.capture_grp = [self.lable_img_capture, self.return_button, self.save_img_button, ]
         self.misc_grp = [
-            self.resize_btn, self.support_btn
+            self.resize_btn, self.support_btn, self.more_addon_btn
         ]
 
         # Visible
@@ -1314,23 +1325,29 @@ class WebQueryWidget(QWidget):
         self._loading_url = ''
 
     def loading_started(self):
+        print 1
         self.loading_lb.setText("<b>Loading ... </b>")
         print 1
         self.show_grp(self.loading_grp, True)
-        self.show_grp(self.view_grp, False)
+        if ProfileConfig.wq_first_answer_clicked:
+            self.show_grp(self.view_grp, False)
         self.show_grp(self.capture_grp, False)
         self.show_grp(self.misc_grp, False)
 
     def load_completed(self, *args):
         print 2
         self.show_grp(self.loading_grp, False)
-        self.show_grp(self.view_grp, True)
+        if ProfileConfig.wq_first_answer_clicked:
+            self.show_grp(self.view_grp, True)
         self.show_grp(self.capture_grp, False)
         self.show_grp(self.misc_grp, True)
 
     def show_grp(self, grp, show):
         for c in grp:
-            c.setVisible(show)
+            if show:
+                c.setVisible(show)
+            else:
+                c.hide()
 
     def on_web_element_capture(self, rect):
         self.lable_img_capture.image = QImage(QPixmap.grabWindow(self._view.winId(), rect.x(),
@@ -1511,7 +1528,7 @@ class WebQryAddon:
 
         # others
         hook_func("showQuestion", self.start_query)
-        hook_func("showAnswer", self.show_widget)
+        hook_func("showAnswer", partial(self.show_widget,False,True))
         hook_func("deckClosing", self.destroy_dock)
         hook_func("reviewCleanup", self.destroy_dock)
         hook_func("profileLoaded", self.profileLoaded)
@@ -1545,6 +1562,9 @@ class WebQryAddon:
             self.main_menu_action = mw.form.menuTools.addMenu(self.main_menu)
 
     def profileLoaded(self):
+
+        ProfileConfig.wq_first_answer_clicked = False
+
         # region owverwrite note type management
         def onNoteTypes():
             ModelDialog(mw, mw, fromMain=True).exec_()
@@ -1736,7 +1756,7 @@ class WebQryAddon:
         if self._display_widget:
             self._display_widget.setVisible(False)
 
-    def show_widget(self, from_toggle=False):
+    def show_widget(self, from_toggle=False,from_answer_btn = False):
         if (not from_toggle) and (not eval(str(self.card.ivl) + UserConfig.load_when_ivl)):
             self.destroy_dock()
             return
@@ -1751,6 +1771,8 @@ class WebQryAddon:
 
         if not UserConfig.preload:
             self.start_pages()
+        if from_answer_btn and not ProfileConfig.wq_first_answer_clicked:
+            ProfileConfig.wq_first_answer_clicked = True
 
     def destroy_dock(self):
         if self.dock:
@@ -1760,6 +1782,7 @@ class WebQryAddon:
 
         if self.main_menu_action:
             mw.form.menuTools.removeAction(self.main_menu_action)
+        ProfileConfig.wq_first_answer_clicked = False
 
     def hide(self):
         if self.dock:

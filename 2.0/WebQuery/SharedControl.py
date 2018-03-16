@@ -296,7 +296,6 @@ class MoreAddonButton(_ImageButton):
 
     def __init__(self, parent):
         super(MoreAddonButton, self).__init__(parent, ":/icon/more.png")
-        self.setObjectName("btn_more_addon")
         self.setToolTip(_("MORE ADDON"))
         self.json_file = "_more_addons.json"
         self._thr_download_json = MoreAddonButton._download_json(self, self.json_file)
