@@ -680,7 +680,8 @@ class _Page(QWebPage):
         itime = time.time()
         while self._load_status is None:
             if timeout and time.time() - itime > timeout:
-                raise Exception("Timeout reached: %d seconds" % timeout)
+                break
+                # raise Exception("Timeout reached: %d seconds" % timeout)
             self._events_loop()
         self._events_loop(0.0)
         if self._load_status:
@@ -1218,10 +1219,9 @@ class WebQueryWidget(QWidget):
     def add_query_page(self, page):
         self._view.add_query_page(page)
 
-        if not ProfileConfig.wq_first_answer_clicked:
-            self.show_grp(self.loading_grp, False)
-            self.show_grp(self.view_grp, True)
-            self.show_grp(self.capture_grp, False)
+        self.show_grp(self.loading_grp, False)
+        self.show_grp(self.view_grp, True)
+        self.show_grp(self.capture_grp, False)
 
     def reload(self):
         self._view.reload()
@@ -1268,6 +1268,7 @@ class WebQueryWidget(QWidget):
         pix.loadFromData(more_bytes)
         icon = QIcon(pix)
         self.more_addon_btn.setIcon(icon)
+        self.more_addon_btn.setVisible(False)
 
         self.capture_option_btn = CaptureOptionButton(self, options_menu)
         self.capture_option_btn.setMaximumWidth(100)
@@ -1325,29 +1326,22 @@ class WebQueryWidget(QWidget):
         self._loading_url = ''
 
     def loading_started(self):
-        print 1
         self.loading_lb.setText("<b>Loading ... </b>")
-        print 1
         self.show_grp(self.loading_grp, True)
-        if ProfileConfig.wq_first_answer_clicked:
-            self.show_grp(self.view_grp, False)
+        self.show_grp(self.view_grp, False)
         self.show_grp(self.capture_grp, False)
         self.show_grp(self.misc_grp, False)
 
     def load_completed(self, *args):
         print 2
         self.show_grp(self.loading_grp, False)
-        if ProfileConfig.wq_first_answer_clicked:
-            self.show_grp(self.view_grp, True)
+        self.show_grp(self.view_grp, True)
         self.show_grp(self.capture_grp, False)
         self.show_grp(self.misc_grp, True)
 
     def show_grp(self, grp, show):
         for c in grp:
-            if show:
-                c.setVisible(show)
-            else:
-                c.hide()
+            c.setVisible(show)
 
     def on_web_element_capture(self, rect):
         self.lable_img_capture.image = QImage(QPixmap.grabWindow(self._view.winId(), rect.x(),
@@ -1528,7 +1522,7 @@ class WebQryAddon:
 
         # others
         hook_func("showQuestion", self.start_query)
-        hook_func("showAnswer", partial(self.show_widget,False,True))
+        hook_func("showAnswer", partial(self.show_widget, False, True))
         hook_func("deckClosing", self.destroy_dock)
         hook_func("reviewCleanup", self.destroy_dock)
         hook_func("profileLoaded", self.profileLoaded)
@@ -1562,8 +1556,6 @@ class WebQryAddon:
             self.main_menu_action = mw.form.menuTools.addMenu(self.main_menu)
 
     def profileLoaded(self):
-
-        ProfileConfig.wq_first_answer_clicked = False
 
         # region owverwrite note type management
         def onNoteTypes():
@@ -1756,7 +1748,7 @@ class WebQryAddon:
         if self._display_widget:
             self._display_widget.setVisible(False)
 
-    def show_widget(self, from_toggle=False,from_answer_btn = False):
+    def show_widget(self, from_toggle=False, from_answer_btn=False):
         if (not from_toggle) and (not eval(str(self.card.ivl) + UserConfig.load_when_ivl)):
             self.destroy_dock()
             return
@@ -1771,8 +1763,6 @@ class WebQryAddon:
 
         if not UserConfig.preload:
             self.start_pages()
-        if from_answer_btn and not ProfileConfig.wq_first_answer_clicked:
-            ProfileConfig.wq_first_answer_clicked = True
 
     def destroy_dock(self):
         if self.dock:
@@ -1782,7 +1772,6 @@ class WebQryAddon:
 
         if self.main_menu_action:
             mw.form.menuTools.removeAction(self.main_menu_action)
-        ProfileConfig.wq_first_answer_clicked = False
 
     def hide(self):
         if self.dock:
