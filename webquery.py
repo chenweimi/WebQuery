@@ -46,11 +46,6 @@ __update_logs__ = (
 )
 
 
-# USER PLEASE READ
-# YOU MUST NOT CHANGE THE ORDER OF ** PROVIDER URLS **
-# ONLY IF THE VISIBILITY OF TABS OF A MODEL IS TO BE RE-TOGGLED
-
-
 def start():
     import WebQuery
     if WebQuery.have_setup:
@@ -59,7 +54,6 @@ def start():
     addHook("profileLoaded", lambda: wq.perform_hooks(addHook))
     addHook("unloadProfile", lambda: wq.perform_hooks(remHook))
     WebQuery.have_setup = True
-    QWebSettings.globalSettings().setAttribute(QWebSettings.PluginsEnabled, True)
 
 
 addHook("profileLoaded", start)
