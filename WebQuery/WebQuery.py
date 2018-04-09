@@ -6,7 +6,6 @@
 Project : WebQuery
 Created: 12/24/2017
 """
-import gc
 import json
 import re
 import time
@@ -14,7 +13,6 @@ from functools import partial
 
 from PyQt4 import QtNetwork
 from PyQt4.QtNetwork import QNetworkAccessManager
-from pympler.tracker import SummaryTracker
 
 from DonateWidget20 import DialogDonate
 from anki.cards import Card
@@ -26,8 +24,6 @@ from aqt.models import Models
 from aqt.utils import tooltip, restoreGeom, showInfo
 from uuid import uuid4
 from .kkLib import MoreAddonButton, MetaConfigObj, UpgradeButton, AddonUpdater
-
-tracker = SummaryTracker()
 
 # region Bytes
 items_bytes = bytearray(
