@@ -15,11 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
-from PyQt4.QtWebKit import QWebSettings
 
 from anki.hooks import addHook, remHook
 
-__version__ = '1.2.50'
+__version__ = '1.2.51'
 
 __update_logs__ = (
     ('1.2.44', """
@@ -41,6 +40,11 @@ __update_logs__ = (
        <ol>
        <li>Add: "More Addons" menu for my major developments for Anki addon .. </li>
        <li>Improve: Incorrect button heights</li>
+       </ol>
+       """),
+    ('1.2.51', """
+       <ol>
+       <li>Tried to fix memory leak</li>x
        </ol>
        """)
 )

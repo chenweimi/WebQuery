@@ -6,6 +6,7 @@
 Project : WebQuery
 Created: 12/24/2017
 """
+import gc
 import json
 import re
 import time
@@ -13,6 +14,7 @@ from functools import partial
 
 from PyQt4 import QtNetwork
 from PyQt4.QtNetwork import QNetworkAccessManager
+from pympler.tracker import SummaryTracker
 
 from DonateWidget20 import DialogDonate
 from anki.cards import Card
@@ -24,6 +26,8 @@ from aqt.models import Models
 from aqt.utils import tooltip, restoreGeom, showInfo
 from uuid import uuid4
 from .kkLib import MoreAddonButton, MetaConfigObj, UpgradeButton, AddonUpdater
+
+tracker = SummaryTracker()
 
 # region Bytes
 items_bytes = bytearray(
@@ -182,15 +186,6 @@ class _Page(QWebPage):
         assert isinstance(mgr, QNetworkAccessManager)
         mgr.setProxy(proxy)
 
-    def acceptNavigationRequest(self, mf, rqst, nav_type):
-        # fixme temparory solution of auto reloading on the page creation ..
-        # I'm no able to solve this for spending more time ..
-        # print [nav for nav in dir(self) if nav.startswith('NavigationType') and getattr(self,nav) ==nav_type]
-        if nav_type == self.NavigationTypeReload and not self._first_reload_prohibited:
-            self._first_reload_prohibited = True
-            return False
-        return True
-
     def userAgentForUrl(self, url):
         return "Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, " \
                "like Gecko) Version/9.0 Mobile/13B143 Safari/601.1"
@@ -282,7 +277,7 @@ class _WebView(QWebView):
     def add_query_page(self, page):
         if not self.qry_page:
             self.qry_page = page
-        self.setPage(self.qry_page)
+            self.setPage(self.qry_page)
 
     def load_page(self):
         if self.qry_page:
@@ -839,7 +834,7 @@ class WebQueryWidget(QWidget):
         self.updater = AddonUpdater(
             self,
             "Web Query", 627484806,
-            "https://raw.githubusercontent.com/upday7/WebQuery/master/2.0/webquery.py",
+            "https://github.com/upday7/WebQuery/blob/master/webquery.py",
             "https://github.com/upday7/WebQuery/blob/master/2.0.zip?raw=true",
             mw.pm.addonFolder(),
             WebQryAddon.version
@@ -919,7 +914,6 @@ class WebQueryWidget(QWidget):
         self.show_grp(self.misc_grp, False)
 
     def load_completed(self, *args):
-        print 2
         self.show_grp(self.loading_grp, False)
         self.show_grp(self.view_grp, True)
         self.show_grp(self.capture_grp, False)
@@ -1117,7 +1111,7 @@ class WebQryAddon:
         self.current_index = tab_index
         if not UserConfig.preload:
             self.show_widget()
-        self.web.update_btn.updator.start()
+        self.web.update_btn.updater.start()
 
     @property
     def page(self):
@@ -1288,10 +1282,10 @@ class WebQryAddon:
 
         if not UserConfig.load_on_question:
             self.hide_widget()
+            if UserConfig.preload:
+                self.start_pages()
         else:
             self.show_widget()
-
-        if UserConfig.preload:
             self.start_pages()
 
         self.bind_slots()
@@ -1300,10 +1294,14 @@ class WebQryAddon:
         QApplication.restoreOverrideCursor()
         for wi, web in enumerate(self.webs, ):
             page = self.pages[wi]
-            if page.selector:
-                page.has_selector_contents.connect(partial(self.onSelectorWeb, wi))
+            is_new_page = page is web._view.qry_page
+
+            if not is_new_page:
+                if page.selector:
+                    page.has_selector_contents.connect(partial(self.onSelectorWeb, wi))
             page.load(self.word)
-            web.add_query_page(page)
+            if not is_new_page:
+                web.add_query_page(page)
 
     def onSelectorWeb(self, wi, has):
         if isinstance(self._display_widget, QTabWidget):
@@ -1336,6 +1334,7 @@ class WebQryAddon:
             self._display_widget.setVisible(False)
 
     def show_widget(self, from_toggle=False, from_answer_btn=False):
+
         if (not from_toggle) and (not eval(str(self.card.ivl) + UserConfig.load_when_ivl)):
             self.destroy_dock()
             return
@@ -1347,9 +1346,6 @@ class WebQryAddon:
         if self._first_show:
             self.web.update_btn.updater.start()
             self._first_show = False
-
-        if not UserConfig.preload:
-            self.start_pages()
 
     def destroy_dock(self):
         if self.dock:
@@ -1409,7 +1405,7 @@ class WebQryAddon:
         self.dock.setVisible(SyncConfig.visible)
         return True
 
-    def toggle(self):
+    def toggle(self):  # fixme
         if eval(str(self.card.ivl) + UserConfig.load_when_ivl):
             if not self.ensure_dock():
                 return
@@ -1419,12 +1415,13 @@ class WebQryAddon:
             else:
                 SyncConfig.visible = True
                 self.show_dock()
+                self.start_query(True)
         else:
             if self.dock and self.dock.isVisible():
                 self.hide()
             else:
                 self.start_query(True)
-                self.show_widget(True)
+                # self.show_widget(True)
                 self.show_dock()
 
     def on_closed(self):
