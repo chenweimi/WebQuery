@@ -1,7 +1,7 @@
 # Web Query
 
 ## Version
-Compatable for both Anki2.0 and 2.1
+Compatable for Anki 2.1.x ONLY
 
 ## Main features
 - Search web using provided URL and display during card review. **Search the 1st Field** of current note

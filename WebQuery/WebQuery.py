@@ -1760,4 +1760,3 @@ class WebQryAddon:
             self.note.flush()
             self.card.flush()
             tooltip("Saved image to current card: {}".format(fn), 5000)
-        # self.reviewer.show()
