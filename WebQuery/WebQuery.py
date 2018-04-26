@@ -14,498 +14,12 @@ from aqt.utils import openHelp, showInfo
 from aqt.utils import restoreGeom
 from aqt.utils import tooltip
 from uuid import uuid4
-
-# region Bytes
-items_bytes = bytearray(
-    b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x10\x00\x00\x00\x10\x08\x06\x00\x00\x00\x1f'
-    b'\xf3\xffa\x00\x00\x00\x04sBIT\x08\x08\x08\x08|\x08d\x88\x00\x00\x00\tpHYs\x00\x00\x0b\x13'
-    b'\x00\x00\x0b\x13\x01\x00\x9a\x9c\x18\x00\x00\x00MIDAT8\x8d\xd5\x91\xc1\t\xc00\x0c\xc4TO'
-    b'\x96\rL6\xf2F\x877\xc8d\xa6\xafB\x9f!P\xd2\xe8\x7fpB\xb0\x9b\x0b\xa0\xf7\x1e\x92\xc2\xdd'
-    b'\x9b\x99\xb5\xd9\xb1\xa4\xb0\xaf\x9eM\xb3\xa4PU#3\x07\xc0\xa1\n\x0f\x87Vx\x17\x80?T\xd8'
-    b'\xcf\r\xa5\x9e(\r0\x19&\xcc\x00\x00\x00\x00IEND\xaeB`\x82')
-
-gear_bytes = bytearray(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x10\x00\x00\x00\x10'
-                       b'\x08\x06\x00\x00\x00\x1f\xf3\xffa\x00\x00\x00\x04sBIT\x08\x08\x08'
-                       b'\x08|\x08d\x88\x00\x00\x00\tpHYs\x00\x00\x0b\x13\x00\x00\x0b'
-                       b'\x13\x01\x00\x9a\x9c\x18\x00\x00\x01PIDAT8\x8d}\xd3MKVQ\x14\x05'
-                       b'\xe0\xc7\xab\xf9A\x86\xf9AX"\xf5+D"\x10\xfa\x13\x82\x93\x10'
-                       b'\xc4\x89\x08\x82\x88`?A\x0b\x9c\xd8$P\x82h\xd0 B\x85\xd0\x818s*'
-                       b"\x89\x8a\xa2\x98P\x13'\xa2)\x0e\xf2cp\xf7\x85\x83\xdd\xf7]p"
-                       b'8\x9b\xb3\xd6Yg\xef\xbb\xef\xaeQ\x19\xb7\xb8\x8e\xb8\x165U\xb4'
-                       b'\xa5\xf8\x17{]\x98\x95"\x8b\xbd\x1bSh\x8c5^\xa2\x1dC\x03'
-                       b'\x9a\xf0\x16\xcfR\xf2\x0b\xb6q\x88\x1d|Eo\xc2\xbf\xc47l\xe1(4\x9f\n'
-                       b'\xf2\x15~\x85s\x1f\xdeT)k0\xf4\xcd\xf8]<\xf2\x03\xab\xe8'
-                       b'H\x84\x8d\xf8\x80s\xfc\xc5\\\xa4_\xe0\t\xd6\xb1\x98\xa1\x1f?\xb1'
-                       b'\x9b\xd4\xf5.D/\xf0\x1c\x9d\x98\t\xae;J\xd8\xc0@\x9a\xde\x15'
-                       b'\xea#>\r\x83\xf4\xc5\xd3\x88\x9bqY\x10\x99r\xdc\xefy\x86\x9b2a\x86V'
-                       b'\xcc\xe2\x0c\xedq>\x8f\x8fQRW\xc4\xf3\xc1=\xc6\x05\xde\xa3\x85'
-                       b'\xfc#\xae\xa0-1\xae\x0f\xc1I\xaci<H\xf8\x0e\xaca\x89\xbc'
-                       b'\xc7\xc7x\x88\xd7\x18\xaaP\x16\x0c\xcb[\xfd\x08\x7f\xd0'
-                       b'S\x10\x9f\xb1\x87}\xf9\xcf\xf2]\xde\xef\x02}X\xc6&\x0eB\xbb\x90:wa'
-                       b'"Ro\xc0\xa8\xffga$\xe1\'\xf1\xb4J\xa6\x84A]\\\xa88L\xd5F'
-                       b'\xf4\xfe\xa5R\xed\x1d\xd81A\xc9\x94\x9bY}\x00\x00\x00\x00IEND\xaeB'
-                       b'`\x82')
-
-# endregion
+from .Config import *
+from .Const import *
 
 # region Globals
 global have_setup
 have_setup = False
-this_addon_folder = os.path.split(__file__)[0]
-webq_model_config_json_file = os.path.join(this_addon_folder, "web_query_model_config.json")
-
-
-# endregion
-
-# region Meta classes
-
-# noinspection PyPep8Naming
-class _MetaConfigObj(type):
-    """
-    Meta class for reading/saving config.json for anki addon
-    """
-    metas = {}
-
-    class StoreLocation:
-        Profile = 0
-        AddonFolder = 1
-        MediaFolder = 3
-
-    # noinspection PyArgumentList
-    def __new__(mcs, name, bases, attributes):
-
-        config_dict = {k: attributes[k] for k in attributes.keys() if not k.startswith("_") and k != "Meta"}
-        attributes['config_dict'] = config_dict
-
-        for k in config_dict.keys():
-            attributes.pop(k)
-        c = super(_MetaConfigObj, mcs).__new__(mcs, name, bases, attributes)
-
-        # region Meta properties
-        # meta class
-        meta = attributes.get('Meta', type("Meta", (), {}))
-        # meta values
-        setattr(meta, "config_dict", config_dict)
-        setattr(meta, "__store_location__", getattr(meta, "__store_location__", 0))
-        setattr(meta, "__config_file__", getattr(meta, "__config_file__", None))
-
-        _MetaConfigObj.metas[c.__name__] = meta
-        # endregion
-
-        if not config_dict:
-            return c
-
-        mcs.attributes = attributes  # attributes that is the configuration items
-
-        if _MetaConfigObj.metas[name].__store_location__ == _MetaConfigObj.StoreLocation.MediaFolder:
-            if not _MetaConfigObj.metas[name].__config_file__:
-                raise Exception("If StoreLocation is Media Folder, __config_file__ must be provided!")
-            setattr(c, "media_json_file",
-                    mcs.MediaConfigJsonFile("_{}".format(_MetaConfigObj.metas[name].__config_file__).lower()))
-
-        return c
-
-    def __getattr__(cls, item):
-        if item == "meta":
-            return _MetaConfigObj.metas[cls.__name__]
-        else:
-            load_config = lambda: cls.get_config(cls.metas[cls.__name__].__store_location__)
-            config_obj = load_config()
-            return config_obj.get(item)
-
-    def __setattr__(cls, key, value):
-        """
-        when user set values to addon config obj class, will be passed to anki's addon manager and be saved.
-        :param key:
-        :param value:
-        :return:
-        """
-        try:
-            config_obj = cls.get_config(cls.metas[cls.__name__].__store_location__)
-            config_obj[key] = value
-            store_location = cls.metas[cls.__name__].__store_location__
-            if store_location == cls.StoreLocation.AddonFolder:
-                if cls.IsAnki21:
-                    mw.addonManager.writeConfig(cls.AddonModelName, config_obj)
-                else:
-                    with open(cls.ConfigJsonFile(), "w") as f:
-                        json.dump(config_obj, f)
-            elif store_location == cls.StoreLocation.MediaFolder:
-                with open(cls.media_json_file, "w") as f:
-                    json.dump(config_obj, f)
-            elif store_location == _MetaConfigObj.StoreLocation.Profile:
-                if _MetaConfigObj.IsAnki21():
-                    mw.pm.profile.update(config_obj)
-                else:
-                    mw.pm.meta.update(config_obj)
-        except:
-            super(_MetaConfigObj, cls).__setattr__(key, value)
-
-    def get_config(cls, store_location):
-        """
-
-        :param store_location:
-        :rtype: dict
-        """
-
-        def _get_json_dict(json_file):
-            if not os.path.isfile(json_file):
-                with open(json_file, "w") as f:
-                    json.dump(cls.config_dict, f)
-            with open(json_file, 'r') as ff:
-                return json.load(ff)
-
-        if store_location == _MetaConfigObj.StoreLocation.Profile:
-            if _MetaConfigObj.IsAnki21():
-                disk_config_obj = mw.pm.profile
-            else:
-                disk_config_obj = mw.pm.meta
-            cls.config_dict.update(disk_config_obj)
-        elif store_location == _MetaConfigObj.StoreLocation.AddonFolder:
-            # ensure json file
-            obj = _get_json_dict(_MetaConfigObj.ConfigJsonFile())
-
-            if _MetaConfigObj.IsAnki21():
-                disk_config_obj = mw.addonManager.getConfig(_MetaConfigObj.AddonModelName())
-            else:
-                disk_config_obj = obj
-            cls.config_dict.update(disk_config_obj)
-        elif store_location == _MetaConfigObj.StoreLocation.MediaFolder:
-            disk_config_obj = _get_json_dict(cls.media_json_file)
-            cls.config_dict.update(disk_config_obj)
-            with open(cls.media_json_file, "w") as f:
-                json.dump(cls.config_dict, f)
-        return cls.config_dict
-
-    @staticmethod
-    def IsAnki21():
-        from anki import version
-        return eval(version[:3]) >= 2.1
-
-    @staticmethod
-    def ConfigJsonFile():
-        return os.path.join(_MetaConfigObj.AddonsFolder(), "config.json")
-
-    @staticmethod
-    def MediaConfigJsonFile(file_nm):
-        return os.path.join(_MetaConfigObj.MediaFolder(), file_nm)
-
-    @staticmethod
-    def AddonsFolder():
-        if _MetaConfigObj.IsAnki21():
-            _ = os.path.join(mw.addonManager.addonsFolder(), _MetaConfigObj.AddonModelName())
-        else:
-            _ = mw.pm.addonFolder()
-        if aqt.isWin:
-            _ = _.encode(aqt.sys.getfilesystemencoding()).decode("utf-8")
-        return _.lower()
-
-    @staticmethod
-    def AddonModelName():
-        return __name__.split(".")[0]
-
-    @staticmethod
-    def MediaFolder():
-        try:
-            return os.path.join(mw.pm.profileFolder(), "collection.media")
-        except:
-            return ''
-
-
-# region Auto-Update
-
-try:
-    import urllib2 as web
-    from urllib import urlretrieve
-except ImportError:
-    from urllib import request as web
-    from urllib.request import urlretrieve
-
-
-class AddonUpdater(QThread):
-    """
-    Class for auto-check and upgrade source codes, uses part of the source codes from ankiconnect.py : D
-    """
-    update_success = pyqtSignal(bool)
-    new_version = pyqtSignal(bool)
-
-    def __init__(self, parent,
-                 addon_name,
-                 version_py,
-                 source_zip,
-                 local_dir, current_version, version_key_word="__version__"):
-        """
-        :param parent: QWidget
-        :param addon_name: addon name
-        :param version_key_word: version variable name, should be in format "X.X.X", this keyword should be stated in the first lines of the file
-        :param version_py: remote *.py file possibly on github where hosted __version__ variable
-        :param source_zip: zip file to be downloaded for upgrading
-        :param local_dir: directory for extractions from source zip file
-        :param current_version: current version string in format "X.X.X"
-
-        :type parent: QWidget
-        :type addon_name: str
-        :type version_key_word: str
-        :type version_py: str
-        :type source_zip: str
-        :type local_dir: str
-        :type current_version: str
-        """
-        super(AddonUpdater, self).__init__(parent)
-        self.source_zip = source_zip
-        self.version_py = version_py
-        self.local_dir = local_dir
-        self.version_key_word = version_key_word
-        self.addon_name = addon_name
-        self.current_version = current_version
-
-    @property
-    def has_new_version(self):
-        try:
-            cur_ver = self._make_version_int(self.current_version)
-            remote_ver = self._make_version_int(
-                [l for l in self._download(self.version_py).split("\n") if l.startswith(self.version_key_word)][
-                    0].split("=")[1])
-            return cur_ver < remote_ver
-        except:
-            return False
-
-    @staticmethod
-    def _download(url):
-        if url.lower().endswith(".py"):
-            try:
-                resp = web.urlopen(url, timeout=10)
-            except web.URLError:
-                return None
-
-            if resp.code != 200:
-                return None
-            if sys.version[0] == '2':
-                return resp.read()
-            else:
-                return resp.read().decode()
-        else:
-            with open(urlretrieve(url)[0], "rb") as f:
-                if sys.version[0] == '2':
-                    return f.read()
-                else:
-                    return f.read().decode()
-
-    @staticmethod
-    def _make_version_int(ver_string):
-        ver_str = "".join([n for n in str(ver_string) if n in "1234567890"])
-        return int(ver_str)
-
-    @staticmethod
-    def _make_data_string(data):
-        return data.decode('utf-8')
-
-    def ask_update(self):
-        return QMessageBox.question(
-            self.parent(),
-            self.addon_name,
-            'Upgrade to the latest version?',
-            QMessageBox.Yes | QMessageBox.No
-        )
-
-    def alert_update_failed(self):
-        QMessageBox.critical(self.parent(),
-                             self.addon_name, 'Failed to download latest version.')
-
-    def alert_update_success(self):
-        QMessageBox.information(self.parent(), self.addon_name,
-                                'Upgraded to the latest version, please restart Anki.')
-
-    def upgrade_using_anki(self):
-        addon_code = '627484806'
-        if _MetaConfigObj.IsAnki21():
-            ret = download(mw, addon_code)
-            if ret[0] == "error":
-                # err = "Error downloading %(id)s: %(error)s" % dict(id=addon_code, error=ret[1])
-                return
-            else:
-                # err = ''
-                data, fname = ret
-                fname = fname.replace("_", " ")
-                mw.addonManager.install(str(addon_code), data, fname)
-                # name = os.path.splitext(fname)[0]
-                mw.progress.finish()
-
-            # mw.addonManager.downloadIds([addon_code, ])
-        else:
-
-            ret = download(mw, addon_code)
-            if not ret:
-                return
-            data, fname = ret
-            mw.addonManager.install(data, fname)
-            mw.progress.finish()
-
-    def upgrade(self):
-        try:
-            self.upgrade_using_anki()
-            self.update_success.emit(True)
-        except:
-            try:
-                data = self._download(self.source_zip)
-                if data is None:
-                    QMessageBox.critical(self.parent(),
-                                         self.addon_name, 'Failed to download latest version.')
-                else:
-                    zip_path = os.path.join(self.local_dir,
-                                            uuid4().hex + ".zip")
-                    with open(zip_path, 'wb') as fp:
-                        fp.write(data)
-
-                    # unzip
-                    from zipfile import ZipFile
-                    zip_file = ZipFile(zip_path)
-                    if not os.path.isdir(self.local_dir):
-                        os.makedirs(self.local_dir, exist_ok=True)
-                    for names in zip_file.namelist():
-                        zip_file.extract(names, self.local_dir)
-                    zip_file.close()
-
-                    # remove zip file
-                    os.remove(zip_path)
-
-                    self.update_success.emit(True)
-            except:
-                self.update_success.emit(False)
-
-    def run(self):
-        if self.has_new_version:
-            self.new_version.emit(True)
-
-
-class UpgradeButton(QPushButton):
-
-    def __init__(self, parent):
-        super(UpgradeButton, self).__init__(parent)
-        pix = QPixmap()
-        pix.loadFromData(bytearray(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x10\x00\x00\x00\x10'
-                                   b'\x08\x06\x00\x00\x00\x1f\xf3\xffa\x00\x00\x02\xb6IDATx^U'
-                                   b'\xcb\xdf\x8bUU\x18\xc7\xe1\xcf\xbb\xf6\xda{w\xce\xd9s\x8e3v'
-                                   b'\x1a\xc4\xb4)db\x18R\xec\x17\x06\x11H\x84\x97\xe1M\xa0\x12\xd1'
-                                   b'\xcd\x14\x98?\x12\x9c\x9bp\xbc\xe8\x0f\xb0D\xbc0\xa1 B\x8dB'
-                                   b'\x98\x02\xc5\x1b\xd3r\x0c,\xa2\x8b\xca\x10\x0f\xd3 \x88'
-                                   b'\x03\xce\x19l\xe6\xcc9{\xaf\xb5\xde\x86\xb3\xa1\xf2\x81'
-                                   b'\xef\xcd\xfb\xf2\x91\xa5\xe9\x97\xf9?\x11\xc1\xc6\x86\x99K'
-                                   b'\xad\xc7\xb2\xcct\x8a_\xfe"\x1d6\xb5\xda\xf6=\xf7\xf0KH\xf0'
-                                   b"\x80\x02\x02\x80u\xf7\xef\xf20\xc5\x8b>\xdb\x1c\xae\x9e\xa9Xw'"
-                                   b'\x1f\x80\xb5\x9b\x92\xc7\xaf\\\xfdaG,n\xd6\xa0\x00h9\xec\xad'
-                                   b'\x999\x04E(i\x80\x90\x87\xa9\xa7\xf7\xbc>\xea\xdbs\xa3\x8b7'
-                                   b'\xa0\xb1\x06Lk\xf6h\x1c\xf3\xb61e\x18\x028\x15\xec\x90/X'
-                                   b'\xaa$\x18\x01\xe9?\x14\xe7\xf1\x95*\xe4\xf5-d\x9b\xff$\xc9\x97'
-                                   b'QD\xc4\x82\x18!(8`\xfbS\x1e\x83\x81\r\xe3\x8fB\xee\xc1{\xc4y\xc8'
-                                   b'\x837\xbd\x07\xd4\xb6\x9d\xa6\xf9\xdew\xd0SB\x11\xbcz\xc5{\xa5'
-                                   b'\xc8\x95WF}?\xb1\xaa\xa0AqbH\xba\x0eQEV@{\x8b\x94\nH'
-                                   b'\xc1\x15\xe8\xeaP\xa3\xaco(.@P0\x94\x10\x81^G\xf1\x058\x87#\xef'
-                                   b'\xd0\x17\xa5P\x11\\\x8e+\nedP\xfb\xa1*(`\x8d\x011\x94\x14\xda\xf7'
-                                   b'\x01O\xdb\x86.%\x03NX\xeeh{\xecI\xf0\x014\x94\x8d\x8d\xc0\xa6)M'
-                                   b'\x1b\xe9n\x82\xbe\xebs\xee\x15]\xe6\x93a3N\xe8\xd1\x17W\xe9'
-                                   b'\xcd\x05\xc6\x1a\xac[\xe9q31\x0c\x11\xd1L\x12\xdeZ\xddy\x8e'
-                                   b'>\xc1\xd0\xf7\x07\x87?\xff\xf5\x83A\xd5\xd6N\xd5Kc\xaa_oP=U\xd3'
-                                   b'\xe2\xdc\x88\xe6\x1f\xa2:\x89\xea\xf1H\xf5\x8b\x01\xd5o'
-                                   b'\x1b\xda\xda+z\xfa%\xcel\x14\x9a6KYHSy\xf3\xf6\xb5\xf6\x82_\xbc'
-                                   b'\xb8\x7f\xeb\xc4s\xb00\x0f\xdd\x9cn=\xc5\xfb\x88j\xc7\x13\xff\xed'
-                                   b'![\xe2\xe6y\x98\xf9I?\xa9\xafebK\r\x8c5`\xad\xf0HE\x0eL_X9v'
-                                   b'\xfd\xe3\x1b\xd0\x8c!\x8e\xc8\xde\xf8\x83\xc6T\xc1\xf2"'
-                                   b'\x10\xc1\xecu\xe5\xe4\xb4\x9e\xacU\x98Hb\xa8F`\x10\x10\x11\x92'
-                                   b'\x18\x063\x0e\x1d\xf9\xb2\xf7\xd1\x8f\x9f\xceCV\x10\xae'
-                                   b'\xbc\xca\x83\xe3k\x88\x07\xe0\xf2\x0c\xec\xfc\x8c\x13\xcd\x8c'
-                                   b'\xbdi\x0cF\xcaY\x00\x04\xc4@\x92\x08\x1b\xeb\xbc\xbf\xfbl(\xce'
-                                   b'\xe5\x1c~\xe1\x99\xcb\xc8\x1c|\xf3;\xec\xba\xc6\x89]'
-                                   b'\x83\xec\xab\x961\x08}\x86\x12\x02D\x06\xb2\x046\xd7\x99|\xf1+'
-                                   b'\x8e\xfd\xfc\x1b\\m\xf5\xe3S\xc0\xbez\x02\x91\x80\x08'
-                                   b'\xff\xb2\x86\xff\x88\x94\x87F\x02\xafe\x1cz\xfe,u\xa0\x02\xbc3'
-                                   b'\x1e\x83-\xe3\x87\xfc\x03.\x87/\xdd\x8a[\xdf\x84\x00\x00\x00\x00I'
-                                   b'END\xaeB`\x82'))
-        icon = QIcon(pix)
-        self.setIcon(icon)
-        self.setToolTip("There's new version, please click here to download")
-        self.updator = AddonUpdater(
-            self,
-            "Web Query",
-            "https://raw.githubusercontent.com/upday7/WebQuery/master/WebQuery/__init__.py",
-            "https://github.com/upday7/WebQuery/blob/master/2.1.zip?raw=true",
-            mw.pm.addonFolder(),
-            WebQryAddon.version
-        )
-        self.updator.new_version.connect(self.on_addon_new_version)
-        self.updator.update_success.connect(self.on_addon_updated)
-        self.setVisible(False)
-        self.clicked.connect(self.on_clicked)
-
-    def on_addon_new_version(self):
-        self.setVisible(True)
-
-    def on_addon_updated(self, success):
-        if success:
-            self.updator.alert_update_success()
-            self.setVisible(False)
-        else:
-            self.updator.alert_update_failed()
-
-    def on_clicked(self):
-        if self.updator.ask_update() == QMessageBox.Yes:
-            mw.moveToState("deckBrowser")
-            if _MetaConfigObj.IsAnki21():
-                mw.closeAllWindows(self.updator.upgrade)
-            else:
-                mw.closeAllWindows()
-                self.updator.upgrade()
-
-
-# endregion
-
-# region Default Configuration Objects
-class SyncConfig(metaclass=_MetaConfigObj):
-    class Meta:
-        __store_location__ = _MetaConfigObj.StoreLocation.MediaFolder
-        __config_file__ = "webquery_config.json"
-
-    doc_size = (405, 808)
-    image_field_map = {}
-    qry_field_map = {}
-    txt_field_map = {}
-    visible = True
-    append_mode = False
-    auto_save = False
-
-    txt_edit_current_after_saving = False
-    auto_img_find = True
-
-
-class UserConfig(metaclass=_MetaConfigObj):
-    class Meta:
-        __store_location__ = _MetaConfigObj.StoreLocation.MediaFolder
-        __config_file__ = "webquery_user_cfg.json"
-
-    load_on_question = True
-    image_quality = 50
-    provider_urls = [
-        ("Bing", "https://www.bing.com/images/search?q=%s"),
-        ("Wiki", "https://en.wikipedia.org/wiki/?search=%s"),
-    ]
-    preload = True
-    load_when_ivl = ">=0"
-
-
-class ProfileConfig(metaclass=_MetaConfigObj):
-    class Meta:
-        __store_location__ = _MetaConfigObj.StoreLocation.Profile
-
-    is_first_webq_run = True
-    wq_current_version = ''
-
-
-class ModelConfig(metaclass=_MetaConfigObj):
-    class Meta:
-        __store_location__ = _MetaConfigObj.StoreLocation.MediaFolder
-        __config_file__ = "webquery_model_cfg.json"
-
-    visibility = {}  # MID: [ { PROVIDER URL NAME: VISIBLE }]
 
 
 # endregion
@@ -658,20 +172,6 @@ class _Page(QWebEnginePage):
             self.runJavaScript("$('{}').html()".format(self.selector), found)
             return
         self.has_selector_contents.emit(False)
-
-
-@property
-def profile(self):
-    """
-
-    :rtype: QWebEngineProfile
-    """
-    return super(_Page, self).profile()
-
-
-@property
-def settings(self):
-    return super(_Page, self).settings()
 
 
 class _WebView(QWebEngineView):
@@ -873,7 +373,7 @@ class OptionsMenu(QMenu):
         self.query_fld_names = fld_names
         if not self.qry_field_menu:
             pix = QPixmap()
-            pix.loadFromData(items_bytes)
+            pix.loadFromData(BYTES_ITEMS)
             icon = QIcon(pix)
             self.qry_field_menu = QMenu("Query Field", self)
             self.qry_field_menu.setIcon(icon)
@@ -966,7 +466,7 @@ class OptionsMenu(QMenu):
 
         # region general
         pix = QPixmap()
-        pix.loadFromData(gear_bytes)
+        pix.loadFromData(BYTES_GEAR)
         self.action_open_user_cfg = QAction("User Config", self)
         self.action_open_user_cfg.setIcon(QIcon(pix))
 
@@ -1152,15 +652,11 @@ class WebQueryWidget(QWidget):
         self.save_img_button.setShortcutEnabled(Qt.Key_C, False)
         self.save_img_button.clicked.connect(self.save_img)
 
-        self.update_btn = UpgradeButton(self)
-        self.update_btn.setMaximumWidth(20)
-
         self.capture_option_btn = CaptureOptionButton(self, options_menu)
         self.capture_option_btn.setMaximumWidth(100)
         self.img_btn_grp_ly = QHBoxLayout()
         self.img_btn_grp_ly.setSpacing(2)
         # self.img_btn_grp_ly.addWidget(self.resize_btn)
-        self.img_btn_grp_ly.addWidget(self.update_btn)
         self.img_btn_grp_ly.addSpacing(5)
         self.img_btn_grp_ly.addWidget(self.capture_option_btn)
         self.img_btn_grp_ly.addWidget(self.return_button)
@@ -1389,7 +885,6 @@ class WebQryAddon:
         self.current_index = tab_index
         if not UserConfig.preload:
             self.show_widget()
-        self.web.update_btn.updator.start()
 
     @property
     def page(self):
@@ -1617,7 +1112,6 @@ class WebQryAddon:
         self.show_doc_widget_children(True)
 
         if self._first_show:
-            self.web.update_btn.updator.start()
             self._first_show = False
 
         if not UserConfig.preload:
