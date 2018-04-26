@@ -30,3 +30,25 @@ BYTES_GEAR = bytearray(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x10\x00
                        b'`\x82')
 
 # endregion
+
+TRANS = {
+    "WEB QUERY": {"zh_CN": "微波颗粒", "en": "Web Query"},
+    "OPTIONS": {"zh_CN": "选项", "en": "Options"},
+    "WEB QUERY TAB VISIBILITY": {"zh_CN": "微波颗粒标签页管理", "en": "Web Query Tab Visibility"},
+    "QUERY FIELD": {"zh_CN": "查询字段", "en": "Query Field"},
+    "IMAGE CAPTURE": {"zh_CN": "截图", "en": "Image Capture"},
+    "TEXT CAPTURE": {"zh_CN": "文本摘取", "en": "Text Capture"},
+    "CAPTURE IMAGE (C)": {"zh_CN": "截图（C）", "en": "Capture Image (C)"},
+    "SAVE (C)": {"zh_CN": "保存（C）", "en": "Save (C)"},
+    "SAVE TEXT (T)": {"zh_CN": "保存文本（T）", "en": "Save Text (T)"},
+    "RETURN": {"zh_CN": "返回", "en": "Return"},
+    "APPEND MODE": {"zh_CN": "追加模式", "en": "Append Mode"},
+    "AUTO SAVE": {"zh_CN": "自动保存", "en": "Auto Save"},
+    "RIGHT-CLICK MODE": {"zh_CN": "右键模式", "en": "Right-Click Mode"},
+    "TRIGGER EDIT": {"zh_CN": "触发编辑", "en": "Trigger Edit"},
+    "TOGGLE WEBQUERY": {"zh_CN": "启动", "en": "Toggle WebQuery"},
+    "TOGGLE VISIBILITY": {"zh_CN": "微波颗粒标签页管理", "en": "Toggle Visibility"},
+    "SAVE TO FIELD [{}] (T)": {"zh_CN": "保存至字段 [{}]（T）", "en": "Save to field [{}] (T)"},
+    "<B>LOADING ... </B>": {"zh_CN": "<b>正在载入 ... </b>", "en": "<b>Loading ... </b>"},
+    "SAVED IMAGE TO CURRENT CARD: {}": {"zh_CN": "以保存至当前笔记：{}", "en": "Saved image to current card: {}"},
+}

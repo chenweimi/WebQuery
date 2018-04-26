@@ -1,25 +1,28 @@
 import json
 import re
 from functools import partial
+from uuid import uuid4
+
+from PyQt5.QtGui import QImage
+from PyQt5.QtWebEngineWidgets import QWebEngineProfile
 
 import aqt.models
-from PyQt5.QtGui import QImage
-from PyQt5.QtWebEngineWidgets import QWebEngineProfile, QWebEngineView
 # noinspection PyArgumentList
 from anki.lang import _
 from aqt import *
-from aqt.downloader import download
 from aqt.reviewer import Reviewer
 from aqt.utils import openHelp, showInfo
 from aqt.utils import restoreGeom
 from aqt.utils import tooltip
-from uuid import uuid4
 from .Config import *
 from .Const import *
+from .kkLib import  getTrans
 
+trans = lambda s: getTrans(s,TRANS)
 # region Globals
 global have_setup
 have_setup = False
+_TOOL_NAME = trans("Web Query")
 
 
 # endregion
@@ -250,7 +253,7 @@ class TxtOptionsMenu(QMenu):
 
     def __init__(self, parent):
 
-        super(TxtOptionsMenu, self).__init__("Text Capture", parent)
+        super(TxtOptionsMenu, self).__init__(trans("TEXT CAPTURE"), parent)
         self.default_txt_action_grp = None
         self.default_txt_field_index = 1
 
@@ -271,8 +274,8 @@ class TxtOptionsMenu(QMenu):
     def setup_options_actions(self):
         if self.options_menu:
             return
-        self.options_menu = QMenu("Options", self)
-        action_open_editor = QAction("Trigger Edit", self.options_menu)
+        self.options_menu = QMenu(trans("OPTIONS"), self)
+        action_open_editor = QAction(trans("Trigger Edit"), self.options_menu)
         action_open_editor.setToolTip("Open editor of current note after saving.")
         action_open_editor.setCheckable(True)
         action_open_editor.setChecked(SyncConfig.txt_edit_current_after_saving)
@@ -282,7 +285,7 @@ class TxtOptionsMenu(QMenu):
         self.addMenu(self.options_menu)
 
     def setup_other_actions(self):
-        self.action_save_to_default = QAction("Save Text (T)", self)
+        self.action_save_to_default = QAction(trans("Save Text (T)"), self)
         self.action_save_to_default.setShortcut(QKeySequence("T"))
         self.addAction(self.action_save_to_default)
         self.action_save_to_default.triggered.connect(self.onSaving)
@@ -332,7 +335,7 @@ class TxtOptionsMenu(QMenu):
         if self.action_save_to_default:
             self.action_save_to_default.setVisible(True if self.selected_txt else False)
             self.action_save_to_default.setText(
-                "Save to field [{}] (T)".format(self.default_txt_field_index))
+                trans("Save to field [{}] (T)").format(self.default_txt_field_index))
         if self.options_menu:
             self.options_menu.setEnabled(False if self.selected_txt else True)
             for child in self.options_menu.children():
@@ -347,7 +350,7 @@ class OptionsMenu(QMenu):
     query_field_change = pyqtSignal(int)
 
     def __init__(self, parent, txt_option_menu):
-        super(OptionsMenu, self).__init__('Options', parent)
+        super(OptionsMenu, self).__init__(trans("OPTIONS"), parent)
 
         self.selected_img_index = 1
 
@@ -375,7 +378,7 @@ class OptionsMenu(QMenu):
             pix = QPixmap()
             pix.loadFromData(BYTES_ITEMS)
             icon = QIcon(pix)
-            self.qry_field_menu = QMenu("Query Field", self)
+            self.qry_field_menu = QMenu(trans("Query Field"), self)
             self.qry_field_menu.setIcon(icon)
         if not self.qry_field_action_grp:
             self.qry_field_action_grp = QActionGroup(self.qry_field_menu)
@@ -400,25 +403,25 @@ class OptionsMenu(QMenu):
 
     def setup_image_field(self, fld_names, selected_index=1):
         if not self.menu_img_config:
-            self.menu_img_config = QMenu("Image Capture", self)
+            self.menu_img_config = QMenu(trans("IMAGE CAPTURE"), self)
             self.addMenu(self.menu_img_config)
 
             # region image options
-            menu_img_options = QMenu("Options", self.menu_img_config)
+            menu_img_options = QMenu(trans("OPTIONS"), self.menu_img_config)
 
-            action_img_append_mode = QAction("Append Mode", menu_img_options)
+            action_img_append_mode = QAction(trans("APPEND MODE"), menu_img_options)
             action_img_append_mode.setCheckable(True)
             action_img_append_mode.setToolTip("Append Mode: Check this if you need captured image to be APPENDED "
                                               "to field instead of overwriting it")
             action_img_append_mode.setChecked(SyncConfig.append_mode)
 
-            action_img_auto_save = QAction("Auto Save", menu_img_options)
+            action_img_auto_save = QAction(trans("Auto Save"), menu_img_options)
             action_img_auto_save.setCheckable(True)
             action_img_auto_save.setToolTip("Auto-Save: If this is checked, image will be saved "
                                             "immediately once completed cropping.")
             action_img_auto_save.setChecked(SyncConfig.auto_save)
 
-            action_right_click_mode = QAction("Right-Click Mode", menu_img_options)
+            action_right_click_mode = QAction(trans("Right-Click Mode"), menu_img_options)
             action_right_click_mode.setCheckable(True)
             action_right_click_mode.setToolTip("Right-Click Mode: If this is checked, image which has "
                                                "curor hovered will be captured.")
@@ -516,38 +519,14 @@ class CaptureOptionButton(QPushButton):
         if icon:
             super(CaptureOptionButton, self).__init__(icon, "", parent)
         else:
-            super(CaptureOptionButton, self).__init__("Options", parent)
+            super(CaptureOptionButton, self).__init__(trans("OPTIONS"), parent)
 
         # set style
         # self.setFlat(True)
         self.setToolTip("Capture Options")
 
         self.setMenu(options_menu)
-        self.setText('Options')
-
-
-class ResizeButton(QPushButton):
-    def __init__(self, parent, dock_widget):
-        super(ResizeButton, self).__init__("<>", parent)
-        self.start_resize = False
-        self.dock_widget = dock_widget
-        self.setFixedWidth(10)
-        self.setToolTip("Hold and Drag to change the width of this dock!")
-
-    def mouseReleaseEvent(self, evt):
-        self.start_resize = False
-
-    def mousePressEvent(self, evt):
-        self.start_resize = True
-
-    def mouseMoveEvent(self, evt):
-        if self.start_resize:
-            new_width = QApplication.desktop().rect().right() - QCursor().pos().x()
-            self.dock_widget.setFixedWidth(new_width)
-            doc_size = (new_width, self.dock_widget.height())
-            SyncConfig.doc_size = doc_size
-            self.dock_widget.resize(QSize(new_width, self.dock_widget.height()))
-        evt.accept()
+        self.setText(trans("Options"))
 
 
 class ConfigEditor(QDialog):
@@ -637,22 +616,23 @@ class WebQueryWidget(QWidget):
         self.lable_img_capture.canceled.connect(self.crop_canceled)
 
         self.loading_lb = QLabel()
-        self.capture_button = QPushButton('Capture Image (C)', self)
+        self.capture_button = QPushButton(trans('Capture Image (C)'), self)
         self.capture_button.setShortcut(QKeySequence(Qt.Key_C))
         self.capture_button.clicked.connect(self.on_capture)
 
-        self.return_button = QPushButton('Return', self)
+        self.return_button = QPushButton(trans('Return'), self)
         self.return_button.setMaximumWidth(100)
         self.return_button.setShortcut(QKeySequence("ALT+Q"))
         self.return_button.clicked.connect(self.on_view)
 
         # region Save Image Button and Combo Group
-        self.save_img_button = QPushButton('Save (C)', self)
+        self.save_img_button = QPushButton(trans('Save (C)'), self)
         self.save_img_button.setShortcut(QKeySequence(Qt.Key_C))
         self.save_img_button.setShortcutEnabled(Qt.Key_C, False)
         self.save_img_button.clicked.connect(self.save_img)
 
         self.capture_option_btn = CaptureOptionButton(self, options_menu)
+        self.capture_button.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding)
         self.capture_option_btn.setMaximumWidth(100)
         self.img_btn_grp_ly = QHBoxLayout()
         self.img_btn_grp_ly.setSpacing(2)
@@ -696,7 +676,7 @@ class WebQueryWidget(QWidget):
         self.mv = None
 
     def loading_started(self):
-        self.loading_lb.setText("<b>Loading ... </b>")
+        self.loading_lb.setText(trans("<b>Loading ... </b>"))
         self.show_grp(self.loading_grp, True)
         self.show_grp(self.view_grp, False)
         self.show_grp(self.capture_grp, False)
@@ -786,7 +766,7 @@ class ModelDialog(aqt.models.Models):
         # endregion
 
         # add additional button
-        self.button_tab_visibility = QPushButton("Web Query Tab Visibility", self)
+        self.button_tab_visibility = QPushButton(trans("Web Query Tab Visibility"), self)
         self.button_tab_visibility.clicked.connect(self.onWebQueryTabConfig)
         self.button_tab_visibility.setEnabled(False)
         self.form.modelsList.itemClicked.connect(
@@ -820,7 +800,7 @@ class ModelDialog(aqt.models.Models):
         class _dlg(QDialog):
             def __init__(inner_self):
                 super(_dlg, inner_self).__init__(self)
-                inner_self.setWindowTitle("Toggle Visibility")
+                inner_self.setWindowTitle(trans("Toggle Visibility"))
 
                 inner_self.provider_url_visibility_dict = ModelConfig.visibility.get(str(self.mid), {})
                 # shown check boxes
@@ -898,9 +878,9 @@ class WebQryAddon:
         if self.main_menu:
             self.main_menu_action = mw.form.menuTools.addMenu(self.main_menu)
         else:
-            self.main_menu = QMenu("WebQuery", mw.form.menuTools)
+            self.main_menu = QMenu(_TOOL_NAME, mw.form.menuTools)
             action = QAction(self.main_menu)
-            action.setText("Toggle WebQuery")
+            action.setText(trans("Toggle WebQuery"))
             action.setShortcut(QKeySequence("ALT+W"))
             self.main_menu.addAction(action)
             action.triggered.connect(self.toggle)
@@ -1134,19 +1114,19 @@ class WebQryAddon:
     def ensure_dock(self):
         if ProfileConfig.is_first_webq_run:
             QMessageBox.warning(
-                mw, "Web Query", """
+                mw, _TOOL_NAME, """
                 <p>
                     <b>Welcome !</b>
                 </p>
                 <p>This is your first run of <EM><b>Web Query</b></EM>, please read below items carefully:</p>
                 <ul>
                     <li>
-                        Choose proper <em>[Image]</em> field in "Options" button in right dock widget 
+                        Choose proper <em>[Image]</em> field in trans("OPTIONS") button in right dock widget 
                         BEFORE YOU SAVING ANY IMAGES, by default its set to the 2nd
                         field of your current note.
                     </li>
                     <li>
-                        You are able to change the <em>[Query]</em> field in "Options" also, 
+                        You are able to change the <em>[Query]</em> field in trans("OPTIONS") also, 
                         which is set to the 1st field by default.
                     </li>
                 </ul>
@@ -1157,14 +1137,14 @@ class WebQryAddon:
                 cur_log_ver, cur_update_msg = _
                 if cur_log_ver != self.version:
                     continue
-                QMessageBox.warning(mw, "Web Query", """
+                QMessageBox.warning(mw, _TOOL_NAME, """
                 <p><b>v{} Update:</b></p>
                 <p>{}</p>
                 """.format(cur_log_ver, cur_update_msg))
             ProfileConfig.wq_current_version = self.version
 
         if not self.dock:
-            self.dock = self.add_dock('Web Query', )
+            self.dock = self.add_dock(_TOOL_NAME, )
             if not self.dock:
                 return False
             self.dock.closed.connect(self.on_closed)
