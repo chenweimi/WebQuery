@@ -427,7 +427,7 @@ class UpgradeButton(QPushButton):
         self.updator = AddonUpdater(
             self,
             "Web Query",
-            "https://raw.githubusercontent.com/upday7/WebQuery/master/2.1/__init__.py",
+            "https://raw.githubusercontent.com/upday7/WebQuery/master/WebQuery/__init__.py",
             "https://github.com/upday7/WebQuery/blob/master/2.1.zip?raw=true",
             mw.pm.addonFolder(),
             WebQryAddon.version
