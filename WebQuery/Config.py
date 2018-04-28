@@ -27,7 +27,7 @@ class UserConfig(metaclass=MetaConfigObj):
     load_on_question = True
     image_quality = 50
     provider_urls = [
-        ("Bing", "https://www.bing.com/images/search?q=%s"),
+        ("Bing", "http://cn.bing.com/images/search?q=%s&ensearch=1"),
         ("Wiki", "https://en.wikipedia.org/wiki/?search=%s"),
     ]
     preload = True

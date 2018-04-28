@@ -631,6 +631,7 @@ class WebQueryWidget(QWidget):
         self.loading_lb = QLabel()
         self.capture_button = QPushButton(trans('Capture Image (C)'), self)
         self.capture_button.setShortcut(QKeySequence(Qt.Key_C))
+        self.capture_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
         self.capture_button.clicked.connect(self.on_capture)
 
         self.return_button = QPushButton(trans('Return'), self)
