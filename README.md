@@ -9,11 +9,11 @@ Compatable for Anki 2.1.x ONLY
 
 [中文说明点这里](https://zhuanlan.zhihu.com/p/32341193)
 
-![](https://github.com/upday7/WebQuery/blob/master/screenshots/gifs/1.%20Normal%20Crop.gif?raw=true)
+![](https://github.com/upday7/WebQuery/blob/master/screenshots/gifs/1.%20Normal%20Crop.gif)
 
-![](https://github.com/upday7/WebQuery/blob/master/screenshots/gifs/2.%20Right-Click%20Mode.gif?raw=true)
+![](https://github.com/upday7/WebQuery/blob/master/screenshots/gifs/2.%20Right-Click%20Mode.gif)
 
-![](https://github.com/upday7/WebQuery/blob/master/screenshots/gifs/3.%20Save%20Text.gif?raw=true)
+![](https://github.com/upday7/WebQuery/blob/master/screenshots/gifs/3.%20Save%20Text.gif)
 
 ## Installation
 Use the installation code: 627484806
