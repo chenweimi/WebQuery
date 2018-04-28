@@ -51,4 +51,5 @@ TRANS = {
     "SAVE TO FIELD [{}] (T)": {"zh_CN": "保存至字段 [{}]（T）", "en": "Save to field [{}] (T)"},
     "<B>LOADING ... </B>": {"zh_CN": "<b>正在载入 ... </b>", "en": "<b>Loading ... </b>"},
     "SAVED IMAGE TO CURRENT CARD: {}": {"zh_CN": "以保存至当前笔记：{}", "en": "Saved image to current card: {}"},
+    "USER CONFIG": {"zh_CN": "用户设置", "en": "User Config"},
 }

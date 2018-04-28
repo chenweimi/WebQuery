@@ -22,7 +22,7 @@ from .WebQuery import *
 # region Entry Part
 
 
-__version__ = '2.0.1'
+__version__ = '2.1.1'
 
 __update_logs__ = (
     ('2.0.1', """

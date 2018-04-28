@@ -16,9 +16,9 @@ from aqt.utils import restoreGeom
 from aqt.utils import tooltip
 from .Config import *
 from .Const import *
-from .kkLib import  getTrans
+from .kkLib import getTrans
 
-trans = lambda s: getTrans(s,TRANS)
+trans = lambda s: getTrans(s, TRANS)
 # region Globals
 global have_setup
 have_setup = False
@@ -96,6 +96,13 @@ class _ImageLabel(QLabel):
 
 class _Page(QWebEnginePage):
     has_selector_contents = pyqtSignal(bool)
+    image_rect_fired = pyqtSignal(list)
+
+    class Bridge(QObject):
+
+        @pyqtSlot(list)
+        def onImageRect(self, rect):
+            self.fire_image_rect(rect)
 
     def __init__(self, parent, keyword=None, provider_url=''):
         super(_Page, self).__init__(parent)
@@ -112,6 +119,42 @@ class _Page(QWebEnginePage):
         self.settings.setAttribute(QWebEngineSettings.ScreenCaptureEnabled, True)
         self.settings.setAttribute(QWebEngineSettings.AllowRunningInsecureContent, True)
         self.settings.setAttribute(QWebEngineSettings.AllowGeolocationOnInsecureOrigins, True)
+
+        # set scripts
+
+        self._channel = QWebChannel(self)
+        self._bridge = _Page.Bridge()
+        self._bridge.fire_image_rect = self.image_rect_fired.emit
+        self._channel.registerObject("pyjs", self._bridge)
+        self.setWebChannel(self._channel)
+
+        js = QFile(':/qtwebchannel/qwebchannel.js')
+        assert js.open(QIODevice.ReadOnly)
+        js = bytes(js.readAll()).decode('utf-8')
+
+        js_init = js + """
+            // Right-Click Mode
+            document.oncontextmenu = function (e) {
+                new QWebChannel(qt.webChannelTransport, function (channel) {
+                        window.pyjs = channel.objects.pyjs;
+            
+                        let el = e.target;
+                        if (el.tagName === "IMG") {
+                            let el_rect = el.getBoundingClientRect();
+                            pyjs.onImageRect([el_rect.left, el_rect.top,
+                                el.width, el.height]);
+                        }
+                    }
+                );
+            };
+        
+        """
+        scripts = QWebEngineScript()
+        scripts.setSourceCode(js_init)
+        scripts.setWorldId(QWebEngineScript.MainWorld)
+        scripts.setInjectionPoint(QWebEngineScript.DocumentReady)
+        scripts.setRunsOnSubFrames(False)
+        self.scripts().insert(scripts)
 
     @property
     def agent(self):
@@ -191,6 +234,7 @@ class _WebView(QWebEngineView):
         if not self.qry_page:
             self.qry_page = page
             self.setPage(self.qry_page)
+            self.qry_page.image_rect_fired.connect(self.on_right_image_corp)
 
     def load_page(self):
         if self.qry_page:
@@ -201,49 +245,18 @@ class _WebView(QWebEngineView):
             self.txt_option_menu.set_selected(self.selectedText())
             self.txt_option_menu.exec_(mw.cursor().pos())
         else:
-            super(_WebView, self).contextMenuEvent(evt)
+            if not SyncConfig.auto_img_find:
+                super(_WebView, self).contextMenuEvent(evt)
 
     def selectedText(self):
         return self.page().selectedText()
 
-    @property
-    def mf(self):  # fixme fix for 2.1
-        return None
+    def on_right_image_corp(self, image_rect):
 
-    @property
-    def web_elements_coord(self):
-        _ = []
-        # fixme fix for 2.1
-
-        return _
-
-    def mousePressEvent(self, evt):
-        """
-
-        :type event: QMouseEvent
-        :return:
-        """
-        evt.accept()
-        return
-        # fixme fix for 2.1
         if SyncConfig.auto_img_find:
-            cursor_pos = evt.pos()
-            scroll_pos = self.mf.scrollPosition()
-            for el, q_rect in self.web_elements_coord[::-1]:
-                rect = QRect(
-                    q_rect.left(),
-                    q_rect.top() - scroll_pos.y(),
-                    q_rect.width(),
-                    q_rect.height()
-                )
-                if rect.contains(cursor_pos, True) and rect != self._web_element_rect:
-                    self._web_element_rect = rect
-                    break
-
-            if evt.button() == Qt.RightButton:
-                if self._web_element_rect:
-                    self.element_captured.emit(self._web_element_rect)
-        evt.accept()
+            self.element_captured.emit(QRect(
+                *image_rect
+            ))
 
 
 class TxtOptionsMenu(QMenu):
@@ -433,7 +446,7 @@ class OptionsMenu(QMenu):
 
             menu_img_options.addAction(action_img_append_mode)
             menu_img_options.addAction(action_img_auto_save)
-            # menu_img_options.addAction(action_right_click_mode) fixme for 2.1
+            menu_img_options.addAction(action_right_click_mode)
 
             # endregion
 
@@ -470,7 +483,7 @@ class OptionsMenu(QMenu):
         # region general
         pix = QPixmap()
         pix.loadFromData(BYTES_GEAR)
-        self.action_open_user_cfg = QAction("User Config", self)
+        self.action_open_user_cfg = QAction(trans("User Config"), self)
         self.action_open_user_cfg.setIcon(QIcon(pix))
 
         # bind action slots
@@ -632,7 +645,7 @@ class WebQueryWidget(QWidget):
         self.save_img_button.clicked.connect(self.save_img)
 
         self.capture_option_btn = CaptureOptionButton(self, options_menu)
-        self.capture_button.setSizePolicy(QSizePolicy.MinimumExpanding,QSizePolicy.MinimumExpanding)
+        self.capture_button.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         self.capture_option_btn.setMaximumWidth(100)
         self.img_btn_grp_ly = QHBoxLayout()
         self.img_btn_grp_ly.setSpacing(2)
@@ -693,8 +706,9 @@ class WebQueryWidget(QWidget):
             c.setVisible(show)
 
     def on_web_element_capture(self, rect):
-        self.lable_img_capture.image = QImage(QPixmap.grabWindow(self._view.winId(), rect.x(),
-                                                                 rect.y(), rect.width(), rect.height()))
+        # self.lable_img_capture.image = QImage(QPixmap.grabWindow(self._view.winId(), rect.x(),
+        #                                                          rect.y(), rect.width(), rect.height()))
+        self.lable_img_capture.image = QImage(self._view.grab(rect))
         self.lable_img_capture.adjustSize()
         self.cropped()
 
