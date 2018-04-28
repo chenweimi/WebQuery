@@ -96,13 +96,18 @@ class _ImageLabel(QLabel):
 
 class _Page(QWebEnginePage):
     has_selector_contents = pyqtSignal(bool)
-    image_rect_fired = pyqtSignal(list)
+    image_rect_fire = pyqtSignal(list)
+    fire_tag_hover = pyqtSignal(str)
 
     class Bridge(QObject):
 
         @pyqtSlot(list)
         def onImageRect(self, rect):
             self.fire_image_rect(rect)
+
+        @pyqtSlot(str)
+        def onMouseHover(self, tag_type):
+            self.fire_tag_hovered(tag_type)
 
     def __init__(self, parent, keyword=None, provider_url=''):
         super(_Page, self).__init__(parent)
@@ -124,7 +129,8 @@ class _Page(QWebEnginePage):
 
         self._channel = QWebChannel(self)
         self._bridge = _Page.Bridge()
-        self._bridge.fire_image_rect = self.image_rect_fired.emit
+        self._bridge.fire_image_rect = self.image_rect_fire.emit
+        self._bridge.fire_tag_hovered = self.fire_tag_hover.emit
         self._channel.registerObject("pyjs", self._bridge)
         self.setWebChannel(self._channel)
 
@@ -144,6 +150,16 @@ class _Page(QWebEnginePage):
                             pyjs.onImageRect([el_rect.left, el_rect.top,
                                 el.width, el.height]);
                         }
+                    }
+                );
+            };
+            
+            document.onmouseover = function (e) {
+                new QWebChannel(qt.webChannelTransport, function (channel) {
+                        window.pyjs = channel.objects.pyjs;
+            
+                        let el = e.target;
+                        pyjs.onMouseHover(el.tagName);
                     }
                 );
             };
@@ -228,13 +244,15 @@ class _WebView(QWebEngineView):
         self.qry_page = None
         self.txt_option_menu = txt_option_menu
 
-        self._web_element_rect = None
+        self.hovered_element_tag_name = None
 
     def add_query_page(self, page):
         if not self.qry_page:
             self.qry_page = page
             self.setPage(self.qry_page)
-            self.qry_page.image_rect_fired.connect(self.on_right_image_corp)
+            self.qry_page.image_rect_fire.connect(self.on_right_image_corp)
+            self.qry_page.fire_tag_hover.connect(lambda tg_name:
+                                                 setattr(self, "hovered_element_tag_name", tg_name))
 
     def load_page(self):
         if self.qry_page:
@@ -245,18 +263,15 @@ class _WebView(QWebEngineView):
             self.txt_option_menu.set_selected(self.selectedText())
             self.txt_option_menu.exec_(mw.cursor().pos())
         else:
-            if not SyncConfig.auto_img_find:
+            if self.hovered_element_tag_name != "IMG":
                 super(_WebView, self).contextMenuEvent(evt)
 
     def selectedText(self):
         return self.page().selectedText()
 
     def on_right_image_corp(self, image_rect):
-
         if SyncConfig.auto_img_find:
-            self.element_captured.emit(QRect(
-                *image_rect
-            ))
+            self.element_captured.emit(QRect(*image_rect))
 
 
 class TxtOptionsMenu(QMenu):
