@@ -676,7 +676,7 @@ class WebQueryWidget(QWidget):
 
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(self.loading_lb, alignment=Qt.AlignCenter)
-        self.layout.addWidget(self._view)
+        self.layout.addWidget(self._view, 1)
         self.layout.addWidget(self.lable_img_capture, alignment=Qt.AlignCenter)
         self.layout.addItem(self.img_btn_grp_ly)
 
